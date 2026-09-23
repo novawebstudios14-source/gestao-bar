@@ -2,6 +2,7 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 
 export function proxy(request: NextRequest) {
+  if (request.nextUrl.pathname === "/api/health") return NextResponse.next();
   const password = process.env.BAR_PASSWORD;
   if (!password) return new NextResponse("Acesso ainda não configurado.", { status: 503 });
   const authorization = request.headers.get("authorization") ?? "";
