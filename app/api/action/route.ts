@@ -1,4 +1,6 @@
-import { env } from "cloudflare:workers";
+import { db } from "@/db/railway";
+
+export const runtime = "nodejs";
 
 function money(value: unknown) {
   const n = Number(value);
@@ -22,8 +24,6 @@ function category(value: unknown) {
 }
 export async function POST(request: Request) {
   try {
-    const db = env.DB;
-    if (!db) throw new Error("Banco indisponível");
     const body = await request.json() as Record<string, unknown>;
     const now = new Date().toISOString();
     if (body.type === "tableCreate") {
