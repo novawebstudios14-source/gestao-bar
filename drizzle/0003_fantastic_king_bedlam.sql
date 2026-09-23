@@ -1,0 +1,1 @@
+ALTER TABLE `table_sessions` ADD `paid_at` text;
