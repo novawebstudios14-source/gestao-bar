@@ -2,15 +2,21 @@
 
 Sistema de gestão de mesas, comandas, estoque e resultados por período.
 
-O código-fonte do aplicativo está neste repositório. A aplicação usa rotas de servidor e banco D1, portanto o GitHub Pages não executa o sistema completo; a página estática em `docs/` direciona ao aplicativo funcional hospedado separadamente.
+## Hospedagem
 
-Aplicativo: https://controle-bar-estoque.diastolic-lounge6.chatgpt.site
+O GitHub Pages publica somente a [página de acesso](https://novawebstudios14-source.github.io/gestao-bar/). O painel funcional usa rotas Next.js e SQLite e foi preparado para Railway em `railway.json`. Até a migração, os dados existentes continuam na [instalação anterior](https://controle-bar-estoque.diastolic-lounge6.chatgpt.site).
+
+Para ativar no Railway:
+
+1. Crie um projeto e implante este repositório (`main`).
+2. Anexe um volume persistente ao serviço, montado em `/data`.
+3. Configure `DATABASE_PATH=/data/bar.sqlite`, `BAR_USER=bar` e uma senha forte em `BAR_PASSWORD`.
+4. Gere um domínio público e confira `/api/health`. O painel e as APIs exigem autenticação HTTP Basic.
+5. Migre os dados do D1 antigo para o novo banco antes de usar o novo endereço em produção. Os dados de operação **não** estão neste repositório e o banco novo começa vazio.
+6. Atualize os links da página de acesso em `index.html` e `docs/index.html` para o novo endereço após verificar a migração.
+
+A conta Railway precisa oferecer capacidade para um novo projeto, serviço e volume. O projeto usa Node.js 22 ou superior. `pnpm build:railway` compila; `pnpm start:railway` inicia o servidor.
 
 ## Desenvolvimento
 
-```sh
-pnpm install
-pnpm dev
-```
-
-A implantação do aplicativo precisa de um ambiente com suporte ao Worker e ao banco D1 configurados em `.openai/hosting.json`. Os dados de demonstração estão no banco de produção e não são exportados para este repositório.
+A hospedagem anterior usa Cloudflare D1 e permanece independente do banco Railway. Para executar a versão Railway localmente, configure `DATABASE_PATH` para um arquivo SQLite local e `BAR_PASSWORD` antes de iniciar o servidor Next.js.
