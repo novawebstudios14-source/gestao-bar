@@ -1,6 +1,7 @@
 import { db } from "@/db/railway";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export function GET() {
   if (!process.env.BAR_PASSWORD) return Response.json({ ok: false }, { status: 503 });
