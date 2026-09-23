@@ -1,9 +1,9 @@
-import { env } from "cloudflare:workers";
+import { db } from "@/db/railway";
+
+export const runtime = "nodejs";
 
 export async function GET(request: Request) {
   try {
-    const db = env.DB;
-    if (!db) throw new Error("Banco indisponível");
     const url = new URL(request.url);
     const from = url.searchParams.get("from") || "0000-01-01";
     const to = url.searchParams.get("to") || "9999-12-31";
