@@ -1,6 +1,7 @@
-import { db } from "@/db/railway";
+import { getBarDb } from "@/db/d1";
+import { requireBarAuth } from "@/app/bar-auth";
 
-export const runtime = "nodejs";
+export const runtime = "edge";
 
 function money(value: unknown) {
   const n = Number(value);
@@ -23,6 +24,9 @@ function category(value: unknown) {
   return value;
 }
 export async function POST(request: Request) {
+  const denied = await requireBarAuth(request);
+  if (denied) return denied;
+  const db = getBarDb();
   try {
     const body = await request.json() as Record<string, unknown>;
     const now = new Date().toISOString();

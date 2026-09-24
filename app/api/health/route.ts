@@ -1,12 +1,14 @@
-import { db } from "@/db/railway";
+import { getBarDb } from "@/db/d1";
+import { requireBarAuth } from "@/app/bar-auth";
 
-export const runtime = "nodejs";
+export const runtime = "edge";
 export const dynamic = "force-dynamic";
 
-export function GET() {
-  if (!process.env.BAR_PASSWORD) return Response.json({ ok: false }, { status: 503 });
+export async function GET(request: Request) {
+  const denied = await requireBarAuth(request);
+  if (denied) return denied;
   try {
-    db.prepare("SELECT 1 AS ok").first();
+    await getBarDb().prepare("SELECT 1 AS ok").first();
     return Response.json({ ok: true });
   } catch {
     return Response.json({ ok: false }, { status: 503 });
