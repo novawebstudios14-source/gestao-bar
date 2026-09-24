@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { PackagePlus, ReceiptText, Boxes, ChartNoAxesCombined, Plus, AlertTriangle, Download, Armchair } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,20 @@ type TableSession = {id:number;table_id:number;opened_at:string;closed_at:string
 type SessionSale = {id:number;session_id:number;product_id:number;quantity:number;unit_price_cents:number;unit_cost_cents:number;business_date:string;created_at:string;product_name:string;unit:string};
 type Data = { tables:BarTable[];sessions:TableSession[];sessionSales:SessionSale[];products:Product[]; movements:Movement[]; summary:{revenue:number;cost:number;invested:number;losses:number;units:number}; byTable:{table_name:string;revenue:number;cost:number;units:number}[]; byDay:{business_date:string;revenue:number;cost:number}[] };
 const categories = ["Cervejas", "Refrigerantes", "Águas", "Porções", "Pratos", "Outros"] as const;
+// Dados fictícios apenas para mostrar a estrutura visual do painel.
+const demoProducts: Product[] = [
+  {id:1,name:"Cerveja Skol lata 350 ml",category:"Cervejas",unit:"un",price_cents:600,promo_price_cents:null,stock:48,avg_cost_cents:320,min_stock:12,kind:"stock"},
+  {id:2,name:"Coca-Cola lata 350 ml",category:"Refrigerantes",unit:"un",price_cents:550,promo_price_cents:null,stock:24,avg_cost_cents:280,min_stock:12,kind:"stock"},
+  {id:3,name:"Coca-Cola 2 L",category:"Refrigerantes",unit:"un",price_cents:1300,promo_price_cents:null,stock:10,avg_cost_cents:750,min_stock:5,kind:"stock"},
+  {id:4,name:"Água mineral 500 ml",category:"Águas",unit:"un",price_cents:500,promo_price_cents:null,stock:22,avg_cost_cents:200,min_stock:8,kind:"stock"},
+  {id:5,name:"Porção de batata frita",category:"Porções",unit:"un",price_cents:2800,promo_price_cents:null,stock:0,avg_cost_cents:1100,min_stock:0,kind:"untracked"},
+  {id:6,name:"Hambúrguer da casa",category:"Pratos",unit:"un",price_cents:3400,promo_price_cents:null,stock:0,avg_cost_cents:1450,min_stock:0,kind:"untracked"},
+];
+const demoData: Data = {
+  products:demoProducts, tables:[{id:1,name:"Mesa 01"},{id:2,name:"Mesa 02"},{id:3,name:"Mesa 03"},{id:4,name:"Mesa 04"}],
+  sessions:[],sessionSales:[],movements:[],
+  summary:{revenue:0,cost:0,invested:0,losses:0,units:0},byTable:[],byDay:[],
+};
 const today = () => new Date().toLocaleDateString("sv-SE");
 const brl = (c:number) => (Number(c || 0)/100).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const dateLabel = (s:string) => s.split("-").reverse().join("/");
@@ -45,8 +59,8 @@ export default function Home() {
   const [view,setView] = useState("overview");
   const [period,setPeriod] = useState("today");
   const [dates,setDates] = useState(() => range("today"));
-  const [data,setData] = useState<Data|null>(null);
-  const [loading,setLoading] = useState(true);
+  const [data] = useState<Data>(demoData);
+  const [loading] = useState(false);
   const [error,setError] = useState("");
   const [busy,setBusy] = useState(false);
   const [product,setProduct] = useState({name:"",unit:"un",price:"",cost:"",minStock:"0",kind:"stock",category:"Outros"});
@@ -58,31 +72,7 @@ export default function Home() {
   const [selectedSessionId,setSelectedSessionId] = useState<number|null>(null);
   const [entry,setEntry] = useState({productId:"",quantity:"1",boxSize:"1",cost:"",date:today()});
   const [sale,setSale] = useState({sessionId:"",productId:"",quantity:"1"});
-  const refresh = useCallback(async () => {
-    setLoading(true); setError("");
-    try { const r=await fetch(`/api/data?from=${dates[0]}&to=${dates[1]}`,{cache:"no-store"}); const j=await r.json() as Data & {error?:string}; if(!r.ok) throw Error(j.error); setData(j); }
-    catch(e) { setError(e instanceof Error?e.message:"Falha ao carregar"); }
-    finally { setLoading(false); }
-  },[dates]);
-  useEffect(() => { refresh(); },[refresh]);
-  useEffect(() => {
-    const context = (document as Document & {modelContext?: {registerTool?: (tool: unknown, options?: {signal: AbortSignal}) => void | Promise<void>}}).modelContext;
-    if (!context?.registerTool) return;
-    const controller = new AbortController();
-    void Promise.resolve(context.registerTool({
-      name: "open_bar_section", title: "Abrir seção do bar",
-      description: "Abre no painel uma das seções: visão geral, mesas, registrar venda, estoque ou entradas.",
-      inputSchema: {type:"object",properties:{section:{type:"string",enum:["overview","tables","sale","stock","purchases"]}},required:["section"],additionalProperties:false},
-      annotations: {readOnlyHint:true},
-      execute(input: unknown) {
-        const section = (input as {section?:string})?.section;
-        if (!section || !["overview","tables","sale","stock","purchases"].includes(section)) throw Error("Seção inválida");
-        setView(section);
-        return {section};
-      }
-    }, {signal:controller.signal})).catch(console.error);
-    return () => controller.abort();
-  }, []);
+  const refresh = useCallback(() => {}, []);
   const selected = data?.products.find(p=>String(p.id)===sale.productId);
   const selectedPrice = selected?.promo_price_cents ?? selected?.price_cents ?? 0;
 
@@ -94,15 +84,13 @@ export default function Home() {
   const displayedSales = data?.sessionSales.filter(m=>m.session_id===displayedSession?.id) || [];
   const stockValue = useMemo(()=>data?.products.reduce((sum,p)=>sum+p.stock*p.avg_cost_cents,0) || 0,[data]);
   async function submit(type:string, body:Record<string,unknown>, done:()=>void) {
-    setBusy(true);
-    try { const r=await fetch("/api/action",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({type,...body})}); const j=await r.json() as {error?:string}; if(!r.ok) throw Error(j.error); toast.success(({sale:"Venda registrada",purchase:"Entrada registrada",product:"Produto cadastrado",productEdit:"Produto atualizado",adjust:"Ajuste registrado",tableCreate:"Mesa cadastrada",sessionOpen:"Comanda aberta",sessionClose:"Comanda encerrada; pagamento não confirmado",sessionPay:"Pagamento confirmado e mesa liberada"} as Record<string,string>)[type] || "Salvo"); done(); await refresh(); }
-    catch(e) { toast.error(e instanceof Error?e.message:"Não foi possível salvar"); }
-    finally { setBusy(false); }
+    void type; void body; void done;
+    toast.info("Prévia visual: esta estrutura não salva dados.");
   }
   const nav=[{id:"overview",label:"Visão geral",icon:ChartNoAxesCombined},{id:"tables",label:"Mesas",icon:Armchair},{id:"sale",label:"Registrar venda",icon:ReceiptText},{id:"stock",label:"Estoque",icon:Boxes},{id:"purchases",label:"Entradas",icon:PackagePlus}];
   return <div className="shell"><Toaster richColors position="top-right"/>
     <aside className="sidebar"><div className="brand"><div className="brandmark">B<span>.</span></div><div><strong>Controle do Bar</strong><small>GESTÃO DO DIA A DIA</small></div></div><div className="navlabel">OPERAÇÃO</div><nav aria-label="Navegação principal">{nav.map(({id,label,icon:Icon})=><button key={id} className={view===id?"active":""} onClick={()=>{setSelectedTableId(null);setView(id)}}><Icon size={19}/><span>{label}</span></button>)}</nav><div className="sidefoot"><span className="live-dot"/> {openSessions.length} {openSessions.length===1?"comanda aberta":"comandas abertas"}</div></aside>
-    <main className="main"><header className="top"><div><span className="eyebrow">CONTROLE DO BAR / OPERAÇÃO</span><h1>{nav.find(n=>n.id===view)?.label}</h1></div><div className="top-actions"><span className="topdate">{new Date().toLocaleDateString("pt-BR",{day:"2-digit",month:"long",year:"numeric"})}</span>{view!=="sale"&&<Button className="primary top-quick" onClick={()=>setView("sale")}><Plus size={17}/> Nova venda</Button>}</div></header>
+    <main className="main"><header className="top"><div><span className="eyebrow">CONTROLE DO BAR / PRÉVIA VISUAL</span><h1>{nav.find(n=>n.id===view)?.label}</h1><small>Estrutura visual com dados fictícios. Nenhuma alteração é salva.</small></div><div className="top-actions"><span className="topdate">{new Date().toLocaleDateString("pt-BR",{day:"2-digit",month:"long",year:"numeric"})}</span>{view!=="sale"&&<Button className="primary top-quick" onClick={()=>setView("sale")}><Plus size={17}/> Nova venda</Button>}</div></header>
     {view==="overview"&&<><div className="toolbar"><div className="periods" aria-label="Período">{[["today","Hoje"],["week","Semana"],["month","Mês"],["all","Tudo"]].map(([id,label])=><button key={id} className={period===id?"chosen":""} onClick={()=>{setPeriod(id);setDates(range(id));}}>{label}</button>)}</div><div className="dateinputs"><label>De <input aria-label="Data inicial" type="date" value={dates[0]==="2000-01-01"?"":dates[0]} onChange={e=>{setPeriod("custom");setDates([e.target.value,dates[1]])}}/></label><label>Até <input aria-label="Data final" type="date" value={dates[1]==="9999-12-31"?"":dates[1]} onChange={e=>{setPeriod("custom");setDates([dates[0],e.target.value])}}/></label></div></div>
       {error?<div className="notice">{error} <Button onClick={refresh}>Tentar novamente</Button></div>:<><section className="overview-hero"><div><span className="hero-label">FATURAMENTO DO PERÍODO</span><strong>{brl(data?.summary.revenue||0)}</strong><span className="hero-note">{data?.summary.units||0} itens vendidos · {data?.byTable.length||0} mesas com vendas</span></div><button className="hero-action" onClick={()=>setView("tables")}><span>Mesas em atendimento</span><strong>{openSessions.length.toString().padStart(2,"0")}</strong><span>Ver mesas →</span></button></section><div className="stats"><Stat label="Custo das vendas" value={brl(data?.summary.cost||0)} note="Custo registrado em cada lançamento"/><Stat label="Lucro bruto" value={brl((data?.summary.revenue||0)-(data?.summary.cost||0))} note="Antes de despesas e impostos" emphasis/><Stat label="Compras de mercadorias" value={brl(data?.summary.invested||0)} note="Entradas neste período"/></div>
       <div className="grid2"><section className="panel"><div className="panelhead"><div><span className="eyebrow">RESULTADO</span><h2>Vendas por mesa</h2></div><button className="textbutton" onClick={()=>exportCsv(data?.movements||[],dates)}> <Download size={15}/> Exportar CSV</button></div><div className="tablewrap"><Table><TableHeader><TableRow><TableHead>Mesa</TableHead><TableHead>Itens</TableHead><TableHead className="right">Faturamento</TableHead><TableHead className="right">Lucro bruto</TableHead></TableRow></TableHeader><TableBody>{data?.byTable.map(row=><TableRow key={row.table_name}><TableCell className="strong"><button className="tablelink" onClick={()=>setTableFocus(tableFocus===row.table_name?null:row.table_name)} aria-expanded={tableFocus===row.table_name}>{row.table_name}</button></TableCell><TableCell>{row.units}</TableCell><TableCell className="right">{brl(row.revenue)}</TableCell><TableCell className="right positive">{brl(row.revenue-row.cost)}</TableCell></TableRow>)}</TableBody></Table>{!data?.byTable.length&&<Empty text="Nenhuma venda neste período."/>}</div></section>

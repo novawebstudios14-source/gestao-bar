@@ -1,1 +1,0 @@
-ALTER TABLE `products` ADD `category` text DEFAULT 'Outros' NOT NULL;
