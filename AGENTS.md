@@ -1,6 +1,6 @@
 # Controle do Bar — instruções para agentes
 
-Este repositório contém somente a estrutura visual do painel, com dados fictícios. Não há API, banco de dados, autenticação nem implantação de produção. Não apresente a prévia como sistema operacional nem reintroduza infraestrutura sem um pedido explícito.
+Este repositório contém o painel operacional ligado ao Supabase e uma demonstração isolada. O proprietário autorizou explicitamente a persistência e o acesso anônimo de leitura e escrita em 24/09/2026. Não apresente a demonstração como dados reais.
 
 ## Fluxo de trabalho
 
@@ -12,7 +12,7 @@ Este repositório contém somente a estrutura visual do painel, com dados fictí
 
 ## Projeto
 
-- Aplicação: Next.js e React; a saída é estática (`output: "export"`).
+- Aplicação: Next.js e React; a saída é estática (`output: "export"`), com acesso direto à API do Supabase.
 - Interface principal: `app/page.tsx`; estilos: `app/bar.css` e `app/globals.css`; componentes usados: `components/ui/`.
 - Executar `npm install` e `npm run build` para verificar mudanças que afetem a compilação.
 - Não inserir dados de clientes, chaves, tokens ou senhas no repositório. Dados exibidos são apenas exemplos.
