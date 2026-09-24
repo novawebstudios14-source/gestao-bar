@@ -4,7 +4,13 @@ Sistema de gestão de mesas, comandas, estoque e resultados por período.
 
 ## Hospedagem
 
-O GitHub Pages publica somente a [página de acesso](https://novawebstudios14-source.github.io/gestao-bar/). O painel funcional usa rotas Next.js e SQLite e foi preparado para Railway em `railway.json`. Até a migração, os dados existentes continuam na [instalação anterior](https://controle-bar-estoque.diastolic-lounge6.chatgpt.site).
+O GitHub Pages publica somente a [página de acesso](https://novawebstudios14-source.github.io/gestao-bar/). O painel usa rotas Next.js e D1 na implantação Cloudflare. Até a validação do novo endereço, o painel existente continua na [instalação anterior](https://controle-bar-estoque.diastolic-lounge6.chatgpt.site).
+
+### Cloudflare Workers + D1
+
+Para a conta Cloudflare do cliente, conecte este repositório ao Workers Builds. O build `pnpm run build` cria ou reutiliza o D1 `gestao-bar-d1`, aplica o esquema vazio e configura o ID real no artefato antes de `npx wrangler deploy`. Consulte [o procedimento de ativação e testes](docs/cloudflare-migration.md). Os dados anteriores são fictícios e não serão importados. O painel só abre após configurar `BAR_PASSWORD` como segredo do Worker.
+
+### Railway (alternativa não ativada)
 
 Para ativar no Railway:
 
