@@ -9,7 +9,7 @@ if (build.status !== 0) process.exit(build.status ?? 1);
 
 // Cloudflare Builds authenticates Wrangler in its own environment. Local builds
 // continue using the placeholder D1 binding for offline compilation.
-if (process.env.WORKERS_CI !== "1") process.exit(0);
+if (!process.env.WORKERS_CI) process.exit(0);
 
 const wrangler = fileURLToPath(new URL("../node_modules/wrangler/bin/wrangler.js", import.meta.url));
 const run = (...args) => execFileSync(process.execPath, [wrangler, ...args], { encoding: "utf8", stdio: ["ignore", "pipe", "inherit"] });
