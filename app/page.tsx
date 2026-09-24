@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { PackagePlus, ReceiptText, Boxes, ChartNoAxesCombined, Plus, AlertTriangle, Download, Armchair } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,29 +9,11 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { toast, Toaster } from "sonner";
+import { createDemoData, filterDemoData, type Data, type Movement } from "@/lib/demo-data";
 import "./bar.css";
 
-type Product = { id:number; name:string; category:string; unit:string; price_cents:number; promo_price_cents:number|null; stock:number; avg_cost_cents:number; min_stock:number; kind:"stock"|"untracked"|"prepared" };
-type Movement = { id:number; product_id:number; product_name:string; kind:string; quantity:number; table_name:string|null; unit:string; unit_price_cents:number; unit_cost_cents:number; business_date:string; created_at:string; note:string|null };
-type BarTable = {id:number;name:string};
-type TableSession = {id:number;table_id:number;opened_at:string;closed_at:string|null;paid_at:string|null;total_cents:number;item_count:number};
-type SessionSale = {id:number;session_id:number;product_id:number;quantity:number;unit_price_cents:number;unit_cost_cents:number;business_date:string;created_at:string;product_name:string;unit:string};
-type Data = { tables:BarTable[];sessions:TableSession[];sessionSales:SessionSale[];products:Product[]; movements:Movement[]; summary:{revenue:number;cost:number;invested:number;losses:number;units:number}; byTable:{table_name:string;revenue:number;cost:number;units:number}[]; byDay:{business_date:string;revenue:number;cost:number}[] };
 const categories = ["Cervejas", "Refrigerantes", "Águas", "Porções", "Pratos", "Outros"] as const;
-// Dados fictícios apenas para mostrar a estrutura visual do painel.
-const demoProducts: Product[] = [
-  {id:1,name:"Cerveja Skol lata 350 ml",category:"Cervejas",unit:"un",price_cents:600,promo_price_cents:null,stock:48,avg_cost_cents:320,min_stock:12,kind:"stock"},
-  {id:2,name:"Coca-Cola lata 350 ml",category:"Refrigerantes",unit:"un",price_cents:550,promo_price_cents:null,stock:24,avg_cost_cents:280,min_stock:12,kind:"stock"},
-  {id:3,name:"Coca-Cola 2 L",category:"Refrigerantes",unit:"un",price_cents:1300,promo_price_cents:null,stock:10,avg_cost_cents:750,min_stock:5,kind:"stock"},
-  {id:4,name:"Água mineral 500 ml",category:"Águas",unit:"un",price_cents:500,promo_price_cents:null,stock:22,avg_cost_cents:200,min_stock:8,kind:"stock"},
-  {id:5,name:"Porção de batata frita",category:"Porções",unit:"un",price_cents:2800,promo_price_cents:null,stock:0,avg_cost_cents:1100,min_stock:0,kind:"untracked"},
-  {id:6,name:"Hambúrguer da casa",category:"Pratos",unit:"un",price_cents:3400,promo_price_cents:null,stock:0,avg_cost_cents:1450,min_stock:0,kind:"untracked"},
-];
-const demoData: Data = {
-  products:demoProducts, tables:[{id:1,name:"Mesa 01"},{id:2,name:"Mesa 02"},{id:3,name:"Mesa 03"},{id:4,name:"Mesa 04"}],
-  sessions:[],sessionSales:[],movements:[],
-  summary:{revenue:0,cost:0,invested:0,losses:0,units:0},byTable:[],byDay:[],
-};
+const demoData:Data={products:[],tables:[],sessions:[],sessionSales:[],movements:[],summary:{revenue:0,cost:0,invested:0,losses:0,units:0},byTable:[],byDay:[]};
 const today = () => new Date().toLocaleDateString("sv-SE");
 const brl = (c:number) => (Number(c || 0)/100).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const dateLabel = (s:string) => s.split("-").reverse().join("/");
@@ -59,7 +41,9 @@ export default function Home() {
   const [view,setView] = useState("overview");
   const [period,setPeriod] = useState("today");
   const [dates,setDates] = useState(() => range("today"));
-  const [data] = useState<Data>(demoData);
+  const [sourceData,setSourceData] = useState<Data>(demoData);
+  useEffect(()=>setSourceData(createDemoData()),[]);
+  const data=useMemo(()=>filterDemoData(sourceData,dates),[sourceData,dates]);
   const [loading] = useState(false);
   const [error,setError] = useState("");
   const [busy,setBusy] = useState(false);
