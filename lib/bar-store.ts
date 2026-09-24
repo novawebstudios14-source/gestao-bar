@@ -3,7 +3,7 @@ import { filterDemoData, type Data, type Product, type Movement, type TableSessi
 const url = "https://ktgbyjuttlriaasqyzvt.supabase.co/rest/v1/bar_state";
 // Chave publicável; permissões efetivas são definidas pelas políticas RLS do banco.
 const key = "sb_publishable_j4hNM6LDx3y7zk8LLTcTkQ_ABH_d1-v";
-const headers = { apikey: key, Authorization: `Bearer ${key}` };
+const headers = { apikey: key };
 type Payload = Pick<Data, "products" | "tables" | "sessions" | "sessionSales" | "movements">;
 type State = { version: number; payload: Payload };
 const emptySummary = { revenue: 0, cost: 0, invested: 0, losses: 0, units: 0 };
