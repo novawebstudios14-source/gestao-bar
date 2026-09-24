@@ -1,8 +1,12 @@
-import { db } from "@/db/railway";
+import { getBarDb } from "@/db/d1";
+import { requireBarAuth } from "@/app/bar-auth";
 
-export const runtime = "nodejs";
+export const runtime = "edge";
 
 export async function GET(request: Request) {
+  const denied = await requireBarAuth(request);
+  if (denied) return denied;
+  const db = getBarDb();
   try {
     const url = new URL(request.url);
     const from = url.searchParams.get("from") || "0000-01-01";
