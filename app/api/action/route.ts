@@ -26,8 +26,8 @@ function category(value: unknown) {
 export async function POST(request: Request) {
   const denied = await requireBarAuth(request);
   if (denied) return denied;
-  const db = getBarDb();
   try {
+    const db = getBarDb();
     const body = await request.json() as Record<string, unknown>;
     const now = new Date().toISOString();
     if (body.type === "tableCreate") {
