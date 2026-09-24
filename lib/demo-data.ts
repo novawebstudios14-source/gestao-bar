@@ -1,6 +1,6 @@
 // Dados inventados para visualizar o painel. Nenhum lançamento é persistido.
 export type Product = { id:number; name:string; category:string; unit:string; price_cents:number; promo_price_cents:number|null; stock:number; avg_cost_cents:number; min_stock:number; kind:"stock"|"untracked"|"prepared" };
-export type Movement = { id:number; product_id:number; product_name:string; kind:string; quantity:number; table_name:string|null; unit:string; unit_price_cents:number; unit_cost_cents:number; business_date:string; created_at:string; note:string|null };
+export type Movement = { id:number; session_id?:number; product_id:number; product_name:string; kind:string; quantity:number; table_name:string|null; unit:string; unit_price_cents:number; unit_cost_cents:number; business_date:string; created_at:string; note:string|null };
 export type BarTable = {id:number;name:string};
 export type TableSession = {id:number;table_id:number;opened_at:string;closed_at:string|null;paid_at:string|null;total_cents:number;item_count:number};
 export type SessionSale = {id:number;session_id:number;product_id:number;quantity:number;unit_price_cents:number;unit_cost_cents:number;business_date:string;created_at:string;product_name:string;unit:string};
@@ -41,7 +41,7 @@ export function createDemoData(base=new Date()): Data {
   const tableIds=[1,3,2,4,5,1];
   const sessions:TableSession[]=days.map((day,index)=>{
     const opened_at=timestamp(day,index===0?18:index===1?19:17);
-    const paid=index>=2;
+    const paid=index>=1;
     return {id:index+1,table_id:tableIds[index],opened_at,closed_at:paid?timestamp(day,21):null,paid_at:paid?timestamp(day,21):null,total_cents:0,item_count:0};
   });
   const sessionSales:SessionSale[]=[];
@@ -50,7 +50,7 @@ export function createDemoData(base=new Date()): Data {
     const session=sessions[sessionId-1], product=products.find(p=>p.id===productId)!;
     const business_date=days[sessionId-1], created_at=timestamp(business_date,hour,minute), id=movements.length+1;
     sessionSales.push({id,session_id:sessionId,product_id:productId,quantity,unit_price_cents:product.price_cents,unit_cost_cents:product.avg_cost_cents,business_date,created_at,product_name:product.name,unit:product.unit});
-    movements.push({id,product_id:productId,product_name:product.name,kind:"sale",quantity,table_name:tables[session.table_id-1].name,unit:product.unit,unit_price_cents:product.price_cents,unit_cost_cents:product.avg_cost_cents,business_date,created_at,note:null});
+    movements.push({id,session_id:sessionId,product_id:productId,product_name:product.name,kind:"sale",quantity,table_name:tables[session.table_id-1].name,unit:product.unit,unit_price_cents:product.price_cents,unit_cost_cents:product.avg_cost_cents,business_date,created_at,note:null});
     session.total_cents+=quantity*product.price_cents;
     session.item_count++;
   };
@@ -76,7 +76,16 @@ export function createDemoData(base=new Date()): Data {
 
 export function filterDemoData(source:Data,[from,to]:string[]):Data {
   const movements=source.movements.filter(m=>m.business_date>=from&&m.business_date<=to);
-  const sales=movements.filter(m=>m.kind==="sale");
+  // Receita e custo entram no caixa somente após a confirmação do pagamento.
+  const paidSessions=new Map(source.sessions.filter(s=>s.paid_at).map(s=>[s.id,s]));
+  const sales=source.sessionSales.flatMap(s=>{
+    const session=paidSessions.get(s.session_id);
+    if(!session?.paid_at) return [];
+    const paidDate=new Date(session.paid_at).toLocaleDateString("sv-SE",{timeZone:"America/Sao_Paulo"});
+    if(paidDate<from||paidDate>to) return [];
+    const table_name=source.tables.find(t=>t.id===session.table_id)?.name;
+    return table_name?[{...s,table_name,business_date:paidDate}]:[];
+  });
   const summary={
     revenue:sales.reduce((sum,m)=>sum+m.quantity*m.unit_price_cents,0),
     cost:sales.reduce((sum,m)=>sum+m.quantity*m.unit_cost_cents,0),

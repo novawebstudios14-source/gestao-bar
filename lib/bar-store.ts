@@ -101,7 +101,7 @@ function applyOperation(state: Payload, type: string, body: Record<string, unkno
     const price = product.promo_price_cents ?? product.price_cents;
     const businessDate = new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
     const table = state.tables.find(t => t.id === session.table_id)!;
-    const movement: Movement = { id: nextId(state.movements), product_id: product.id, product_name: product.name, kind: "sale", quantity, table_name: table.name, unit: product.unit, unit_price_cents: price, unit_cost_cents: product.avg_cost_cents, business_date: businessDate, created_at: iso(), note: null };
+    const movement: Movement = { id: nextId(state.movements), session_id: session.id, product_id: product.id, product_name: product.name, kind: "sale", quantity, table_name: table.name, unit: product.unit, unit_price_cents: price, unit_cost_cents: product.avg_cost_cents, business_date: businessDate, created_at: iso(), note: null };
     state.movements.unshift(movement);
     state.sessionSales.push({ id: nextId(state.sessionSales), session_id: session.id, product_id: product.id, quantity, unit_price_cents: price, unit_cost_cents: product.avg_cost_cents, business_date: businessDate, created_at: movement.created_at, product_name: product.name, unit: product.unit });
     if (product.kind === "stock") product.stock -= quantity;
